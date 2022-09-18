@@ -1,0 +1,136 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+import { addFeedback, getFeedbacks } from '../services/feedback';
+
+class Forms extends React.Component {
+  state = {
+    rating: '',
+    email: '',
+    evaluation: '',
+    isBtnDisable: true,
+    feedbacks: [],
+  };
+
+  componentDidMount() {
+    const allFeedbacks = getFeedbacks();
+    this.setState({ feedbacks: allFeedbacks });
+  }
+
+  handleChange = ({ target: { name, value } }) => {
+    this.setState({
+      [name]: value,
+    }, this.verifyFuction);
+  };
+
+  verifyFuction = () => {
+    const { email, rating } = this.state;
+    const validateEmail = String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
+      );
+    if (validateEmail && rating) {
+      this.setState({ isBtnDisable: false });
+    } else {
+      this.setState({ isBtnDisable: true });
+    }
+  };
+
+  saveRating = () => {
+    const { email, rating, evaluation } = this.state;
+    const emaiL = email;
+    const ratinG = rating;
+    const evaluatioN = evaluation;
+    const { productId } = this.props;
+    const rate = {
+      [productId]: {
+        email: emaiL,
+        rating: ratinG,
+        text: evaluatioN,
+      },
+    };
+    addFeedback(rate);
+    const allFeedbacks = getFeedbacks();
+    this.setState({ feedbacks: allFeedbacks });
+    this.setState({
+      rating: '',
+      email: '',
+      evaluation: '',
+      isBtnDisable: true,
+    });
+  };
+
+  render() {
+    const options = ['1', '2', '3', '4', '5'];
+    const { productId } = this.props;
+    const { email, evaluation, isBtnDisable, feedbacks } = this.state;
+    const filterProduct = feedbacks.filter((element) => element[productId]);
+    return (
+      <div className="feedback">
+        <form>
+          <label htmlFor="email">
+            <input
+              type="email"
+              name="email"
+              value={ email }
+              onChange={ this.handleChange }
+              data-testid="product-detail-email"
+              placeholder="Email"
+              required
+            />
+          </label>
+          <fieldset>
+            {
+              options.map((index) => (
+                <label htmlFor={ `${index}-rating` } key={ index }>
+                  {index}
+                  <input
+                    type="radio"
+                    data-testid={ `${index}-rating` }
+                    id={ `${index}-rating` }
+                    value={ index }
+                    name="rating"
+                    onChange={ this.handleChange }
+                    required
+                  />
+                </label>
+              ))
+            }
+          </fieldset>
+          <textarea
+            name="evaluation"
+            value={ evaluation }
+            onChange={ this.handleChange }
+            data-testid="product-detail-evaluation"
+            placeholder="Deixe sua avaliação!"
+          />
+          <button
+            type="button"
+            data-testid="submit-review-btn"
+            disabled={ isBtnDisable }
+            onClick={ this.saveRating }
+          >
+            Avaliar
+          </button>
+          { isBtnDisable && <span data-testid="error-msg">Campos inválidos</span>}
+        </form>
+        {
+          filterProduct.map((feedback) => (
+            <div key={ feedback[productId].email }>
+              <h3>{ feedback[productId].email }</h3>
+              <h3>{ feedback[productId].rating }</h3>
+              <h3>{ feedback[productId].text }</h3>
+            </div>
+          ))
+        }
+      </div>
+
+    );
+  }
+}
+
+export default Forms;
+
+Forms.propTypes = {
+  productId: PropTypes.string,
+}.isRequired;
